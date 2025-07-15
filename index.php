@@ -19,36 +19,53 @@ if($_SERVER['argc'] > 1) {
 
 // Bootstrap
 Bootstrap::loadEnv();
+if(getenv('SERVER_HOST') === false || getenv('SERVER_PORT') === false) {
+    echo "\n⚠️ --- Server need SERVER_HOST and SERVER_PORT in .env defined to start.\nAbort.\n\n";
+    die;
+}
+
 $router = Bootstrap::compileRoute();
 
 $loop = React\EventLoop\Loop::get();
 
 $server = new HttpServer(function (Psr\Http\Message\ServerRequestInterface $request) use ($router) {
+    $startRequestTS = microtime(true);
     return $router->dispatch($request)
         ->then(
             onFulfilled: 
-                function(ResponseInterface $response) use ($request) {
+                function(ResponseInterface $response) use ($request, $startRequestTS) {
                     $method = $request->getMethod();
                     $uri = $request->getUri()->getPath();
-                    $memoryPeak = memory_get_peak_usage(true)/1024;
+                    $memoryPeak = memory_get_peak_usage(true)/1024/1024;
+                    $delay = round(microtime(true) - $startRequestTS,4);
 
-                    echo "URL : [$method] ".$uri."\n";
-                    echo "memoire en peak : ".$memoryPeak." Kb\n";
+                    echo "✅ URL : [$method] ".$uri."\n";
+                    echo "🧠 Mémoire en peak : ".$memoryPeak." Mb\n";
+                    echo "🕒 Temps execution : ".$delay."s";
 
                     return $response;
                 },
             onRejected:
-                function(Throwable $e) {
-                    var_dump($e->getMessage()); die;
-                    return new Response(Response::STATUS_NOT_FOUND, [], '404 Not Found');
+                function(Throwable $e) use ($request, $startRequestTS) {
+                    $method = $request->getMethod();
+                    $uri = $request->getUri()->getPath();
+                    $delay = round(microtime(true) - $startRequestTS,4);
+
+                    echo "❌ URL : [$method] ".$uri." (404) \n";
+                    echo "🕒 Temps execution : ".$delay."s\n\n";
+
+                    return new Response(Response::STATUS_NOT_FOUND);
                 }
             );
 });
 
 $socket = new React\Socket\SocketServer(getenv('SERVER_HOST').":".getenv('SERVER_PORT'));
 $server->listen($socket);
+$memoryPeak = memory_get_peak_usage(true)/1024/1024;
+$startDelay = round(microtime(true) - START_TS,4);
 
-echo "Serveur lancé sur http://".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
-echo "Lancement en ".(microtime(true) - START_TS)."\n";
-echo "Peak :".memory_get_peak_usage(true)."\n\n";
+
+echo "\n✅ Serveur lancé sur http://".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
+echo "🕒 Lancement en ".$startDelay."s\n";
+echo "🧠 Mémoire consommée : ".$memoryPeak." Mb\n\n";
 $loop->run();
