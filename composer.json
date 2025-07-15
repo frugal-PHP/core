@@ -1,0 +1,22 @@
+{
+    "name": "frugal-php/core",
+    "description": "Core du projet Frugal",
+    "type": "project",
+    "require": {
+        "react/http": "^1.11",
+        "react/socket": "^1.16",
+        "minicli/minicli": "^4.2",
+        "react/async": "^4.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Frugal\\Core\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Grégory COLLIN",
+            "email": "gregory@badass-coding.com"
+        }
+    ]
+}
