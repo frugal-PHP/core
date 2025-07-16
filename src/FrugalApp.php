@@ -54,7 +54,7 @@ class FrugalApp
 
                             echo "✅ URL : [$method] ".$uri."\n";
                             echo "🧠 Mémoire en peak : ".$memoryPeak." Mb\n";
-                            echo "🕒 Temps execution : ".$delay."s";
+                            echo "🕒 Temps execution : ".$delay."s\n\n";
 
                             return $response;
                         },
@@ -76,7 +76,6 @@ class FrugalApp
         $server->listen($socket);
         $memoryPeak = memory_get_peak_usage(true)/1024/1024;
         $startDelay = round(microtime(true) - START_TS,4);
-
 
         echo "\n✅ Serveur lancé sur http://".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
         echo "🕒 Lancement en ".$startDelay."s\n";
