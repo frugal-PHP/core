@@ -4,6 +4,7 @@ namespace Frugal\Core;
 
 use Frugal\Core\Commands\CommandInterpreter;
 use Frugal\Core\Services\Bootstrap;
+use Frugal\Core\Services\Router;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
@@ -19,11 +20,6 @@ class FrugalApp
         define('START_TS', microtime(true));
         define('MEMORY_ON_START', memory_get_usage(true));
 
-        if($_SERVER['argc'] > 1) {
-            CommandInterpreter::run();
-            exit(0);
-        }
-
         // Bootstrap
         Bootstrap::loadEnv();
         if(getenv('SERVER_HOST') === false || getenv('SERVER_PORT') === false) {
@@ -31,7 +27,19 @@ class FrugalApp
             die;
         }
 
-        $router = Bootstrap::compileRoute();
+        Bootstrap::autoloadPlugins();
+        
+        if($_SERVER['argc'] > 1) {
+            CommandInterpreter::run();
+            exit(0);
+        }
+
+        Bootstrap::compileRoute(
+            staticFile: ROOT_DIR."/config/routing/static.php", 
+            dynamicFile: ROOT_DIR."/config/routing/dynamic.php"
+        );
+        $router = new Router(Bootstrap::$compiledRoutes);
+        unset(Bootstrap::$compiledRoutes);
 
         $loop = Loop::get();
 

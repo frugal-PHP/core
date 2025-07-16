@@ -4,6 +4,9 @@ namespace Frugal\Core\Services;
 
 class Bootstrap
 {
+    public static array $compiledRoutes = [];
+    public static array $commands = [];
+
     public static function loadEnv(string $filename = ROOT_DIR."/.env") : void
     {
         if(file_exists($filename)) {
@@ -14,29 +17,33 @@ class Bootstrap
         }
     }
 
-    public static function compileRoute() : Router
+    public static function compileRoute(string $staticFile, string $dynamicFile) : void
     {
-        $compiled = [];
-
-        $staticRoutes = require ROOT_DIR."/config/routing/static.php";
+        $staticRoutes = require $staticFile;
         foreach($staticRoutes as $method => $routes) {
             foreach($routes as $uri => $handler) {
-                $compiled['static'][$method][$uri] = $handler;
+                self::$compiledRoutes['static'][$method][$uri] = $handler;
             }
         }
 
-        $dynamicRoutes = require ROOT_DIR."/config/routing/dynamic.php";
+        $dynamicRoutes = require $dynamicFile;
         foreach ($dynamicRoutes as $method => $routes) {
             foreach ($routes as $routePath => $handler) {
                 $pattern = preg_replace('#\{(\w+)\}#', '(?P<$1>[^/]+)', $routePath);
                 $pattern = "#^" . $pattern . "$#";
-                $compiled['dynamic'][$method][] = [
+                self::$compiledRoutes['dynamic'][$method][] = [
                     'pattern' => $pattern,
                     'handler' => $handler
                 ];
             }
         }
+    }
 
-        return new Router($compiled);
+    public static function autoloadPlugins() : void
+    {
+        foreach(PluginLoader::getPlugins() as $plugin) {
+            PluginLoader::loadRoutes($plugin);
+            PluginLoader::loadCommands($plugin);
+        }
     }
 }
