@@ -12,7 +12,6 @@ class PluginLoader
             if(strpos($namespace,'FrugalPhpPlugin') === 0) {
                 $pluginConfigClass = rtrim($namespace, '\\') . '\\PluginConfig';
                 if (class_exists($pluginConfigClass)) {
-                    echo "⚙️  Chargement de ".$pluginConfigClass::PLUGIN_NAME."\n";
                     $plugins[] = array(
                         'configClass' => $pluginConfigClass,
                         'path' => current($paths)
@@ -36,7 +35,7 @@ class PluginLoader
         if(!isset($pluginRouteFiles['static']) || $pluginRouteFiles['static'] === "" ||
            !isset($pluginRouteFiles['dynamic']) || $pluginRouteFiles['dynamic'] === ""
         ) {
-            echo "🚫 Routes non définies ou invalides\n";
+            echo "  🚫 Routes non définies ou invalides\n";
             return;
         }
 
@@ -44,7 +43,7 @@ class PluginLoader
         $dynamicPath = $pluginInformations['path'] . $pluginRouteFiles['dynamic'];
 
         if (!file_exists($staticPath) || !file_exists($dynamicPath)) {
-            echo "🚫 Fichier(s) de route introuvable(s)\n";
+            echo "  🚫 Fichier(s) de route introuvable(s)\n";
             return;
         }
 
@@ -57,6 +56,11 @@ class PluginLoader
     public static function loadCommands(array $pluginInformations) : void
     {
         $pluginCommands = $pluginInformations['configClass']::pluginRouteCommands();
+        if($pluginCommands === []) {
+            echo "  🚫 Aucune commande définies\n";
+            return;
+        }
         Bootstrap::$commands += $pluginCommands;
+        echo "  ✅ Commandes ajoutées\n";
     }
 }
