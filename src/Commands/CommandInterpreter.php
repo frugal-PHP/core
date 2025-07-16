@@ -10,7 +10,9 @@ class CommandInterpreter
     public static function run()
     {
         $app = new App();
-        $app->registerCommands(Bootstrap::$commands);
+        foreach(Bootstrap::$commands as $title => $command) {
+            $app->registerCommand($title, [$command, 'run']);
+        }
 
         $argv = $_SERVER['argv'];
         $app->runCommand($argv);

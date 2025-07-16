@@ -39,8 +39,6 @@ class FrugalApp
             dynamicFile: ROOT_DIR."/config/routing/dynamic.php"
         );
         $router = new Router(Bootstrap::$compiledRoutes);
-        unset(Bootstrap::$compiledRoutes);
-
         $loop = Loop::get();
 
         $server = new HttpServer(function (ServerRequestInterface $request) use ($router) {
