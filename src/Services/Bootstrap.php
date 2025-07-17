@@ -42,9 +42,7 @@ class Bootstrap
     public static function autoloadPlugins() : void
     {
         foreach(PluginLoader::getPlugins() as $plugin) {
-            echo "⚙️  Chargement de ".$plugin['configClass']::PLUGIN_NAME."\n";
-            PluginLoader::loadRoutes($plugin);
-            PluginLoader::loadCommands($plugin);
+            $plugin::init();
         }
     }
 }
