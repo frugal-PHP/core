@@ -7,6 +7,7 @@ use Frugal\Core\Services\Bootstrap;
 abstract class AbstractPlugin
 {
     protected const PLUGIN_NAME="unknown";
+    public const PLUGIN_ROOT_PATH=__DIR__."/../";
 
     public static function init() : void
     {
