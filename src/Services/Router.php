@@ -3,6 +3,7 @@
 namespace Frugal\Core\Services;
 
 use Exception;
+use Frugal\Core\Exceptions\RouteNotFoundException;
 use Psr\Http\Message\ServerRequestInterface;
 use React\Promise\PromiseInterface;
 
@@ -43,7 +44,7 @@ class Router
             }
         }
 
-        return reject(new Exception("Invalid route"));
+        throw new RouteNotFoundException;
     }
 
     private function call(

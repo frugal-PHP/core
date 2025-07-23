@@ -3,7 +3,9 @@
 namespace Frugal\Core;
 
 use Frugal\Core\Commands\CommandInterpreter;
+use Frugal\Core\Exceptions\RouteNotFoundException;
 use Frugal\Core\Services\Bootstrap;
+use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\Router;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -12,6 +14,8 @@ use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use Throwable;
+
+use function React\Promise\resolve;
 
 class FrugalApp
 {
@@ -24,7 +28,7 @@ class FrugalApp
         Bootstrap::loadEnv();
         if(getenv('SERVER_HOST') === false || getenv('SERVER_PORT') === false) {
             echo "\n⚠️ --- Server need SERVER_HOST and SERVER_PORT in .env defined to start.\nAbort.\n\n";
-            die;
+            exit;
         }
 
         Bootstrap::autoloadPlugins();
@@ -44,36 +48,16 @@ class FrugalApp
 
         $server = new HttpServer(function (ServerRequestInterface $request) use ($router) {
             $startRequestTS = microtime(true);
-            return $router->dispatch($request)
-                ->then(
-                    onFulfilled: 
-                        function(ResponseInterface $response) use ($request, $startRequestTS) {
-                            $method = $request->getMethod();
-                            $uri = $request->getUri()->getPath();
-                            $memoryPeak = memory_get_peak_usage(true)/1024/1024;
-                            $delay = round(microtime(true) - $startRequestTS,4);
+            try {
+                $promise = $router->dispatch($request);
+            } catch(\Throwable $e) {
+                return resolve(FrugalApp::errorResponse($e, 500, $request, $startRequestTS));
+            }
 
-                            echo "✅ URL : [$method] ".$uri."\n";
-                            echo "🧠 Mémoire en peak : ".$memoryPeak." Mb\n";
-                            echo "🕒 Temps execution : ".$delay."s\n\n";
-
-                            return $response;
-                        },
-                    onRejected:
-                        function(Throwable $e) use ($request, $startRequestTS) {
-                            $method = $request->getMethod();
-                            $uri = $request->getUri()->getPath();
-                            $delay = round(microtime(true) - $startRequestTS,4);
-
-                            echo "❌ URL : [$method] ".$uri." (404) \n";
-                            echo "🕒 Temps execution : ".$delay."s\n\n";
-
-                            echo "Erreur : ".$e->getMessage()."\n";
-                            echo "Stack : ".$e->getTraceAsString();
-
-                            return new Response(Response::STATUS_NOT_FOUND);
-                        }
-                    );
+            return $promise->then(
+                fn(ResponseInterface $res) => FrugalApp::logAndReturn($res, $request, $startRequestTS),
+                fn(\Throwable $e)          => FrugalApp::errorResponse($e, $e instanceof RouteNotFoundException ? 404 : 500, $request, $startRequestTS)
+            );
         });
 
         $socket = new SocketServer(getenv('SERVER_HOST').":".getenv('SERVER_PORT'));
@@ -85,5 +69,23 @@ class FrugalApp
         echo "🕒 Lancement en ".$startDelay."s\n";
         echo "🧠 Mémoire consommée : ".$memoryPeak." Mb\n\n";
         $loop->run();
+    }
+
+    private static function logAndReturn(ResponseInterface $res, ServerRequestInterface $req, float $start): ResponseInterface
+    {
+        LogService::logAccess($req, $start, $res->getStatusCode());
+
+        return $res;
+    }
+
+    private static function errorResponse(\Throwable $e, int $status, ServerRequestInterface $req, float $start): Response
+    {
+        LogService::logError($req, $start, $e, $status);
+
+        return new Response(
+            $status,
+            ['Content-Type' => 'application/json'],
+            json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE)
+        );
     }
 }

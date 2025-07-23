@@ -5,7 +5,7 @@ namespace Frugal\Core\Controllers;
 use React\Http\Message\Response;
 
 abstract class AbstractController
-{
+{    
     public function sendResponse(
         int $statusCode,
         ?string $message
