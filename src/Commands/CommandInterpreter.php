@@ -15,8 +15,10 @@ class CommandInterpreter
         }
 
         $argv = $_SERVER['argv'];
+        echo "\n";
+        echo "Mode CLI détecté.\n\n";
+        echo "Lancement de la commande ".$argv[1]."... ";
         $app->runCommand($argv);
-
-        return 0;
+        echo "OK\n\n";
     }
 }

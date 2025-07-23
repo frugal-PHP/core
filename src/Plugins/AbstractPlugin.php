@@ -12,7 +12,7 @@ abstract class AbstractPlugin
     public static function init() : void
     {
         echo "⚙️  Chargement de ".static::PLUGIN_NAME."\n";
-        self::registerServices();
+        static::registerServices();
     }
 
     protected static function loadRoutes(?string $staticPath = null, ?string $dynamicPath = null)

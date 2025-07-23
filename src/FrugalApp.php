@@ -38,6 +38,7 @@ class FrugalApp
             staticFile: ROOT_DIR."/config/routing/static.php", 
             dynamicFile: ROOT_DIR."/config/routing/dynamic.php"
         );
+
         $router = new Router(Bootstrap::$compiledRoutes);
         $loop = Loop::get();
 
@@ -66,6 +67,9 @@ class FrugalApp
 
                             echo "❌ URL : [$method] ".$uri." (404) \n";
                             echo "🕒 Temps execution : ".$delay."s\n\n";
+
+                            echo "Erreur : ".$e->getMessage()."\n";
+                            echo "Stack : ".$e->getTraceAsString();
 
                             return new Response(Response::STATUS_NOT_FOUND);
                         }
