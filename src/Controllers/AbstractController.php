@@ -6,14 +6,14 @@ use React\Http\Message\Response;
 
 abstract class AbstractController
 {    
-    public function sendResponse(
+    public function sendJsonResponse(
         int $statusCode,
-        ?string $message
+        mixed $message
     ) {
         $headers = ['Content-Type' => 'application/json'];
         $response = new Response($statusCode, $headers);
         if($message !== null) {
-            $response->getBody()->write($message);
+            $response->getBody()->write(json_encode($message));
         }
         
         return $response;
