@@ -8,10 +8,10 @@ abstract class AbstractValidator
 {
     public function validate(array $jsonDecoded) : void
     {
-        $this->checkMandatoryFields();
+        $this->checkMandatoryFields($jsonDecoded);
     }
 
-    public function checkMandatoryFields()
+    private function checkMandatoryFields(array $jsonDecoded)
     {
         foreach($this->getMandatoryFields() as $field) {
             if(!isset($jsonDecoded[$field])) {

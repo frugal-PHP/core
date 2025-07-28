@@ -7,6 +7,7 @@ use Frugal\Core\Exceptions\RouteNotFoundException;
 use Frugal\Core\Services\Bootstrap;
 use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\Router;
+use FrugalPhpPlugin\Jwt\Exceptions\InvalidTokenException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
@@ -50,7 +51,11 @@ class FrugalApp
             $startRequestTS = microtime(true);
             try {
                 $promise = $router->dispatch($request);
-            } catch(\Throwable $e) {
+            }
+            catch(InvalidTokenException $e) {
+                return resolve(FrugalApp::errorResponse($e, 401, $request, $startRequestTS));
+            }
+            catch(\Throwable $e) {
                 return resolve(FrugalApp::errorResponse($e, 500, $request, $startRequestTS));
             }
 
