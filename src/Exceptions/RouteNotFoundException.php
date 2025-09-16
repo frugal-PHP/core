@@ -2,9 +2,7 @@
 
 namespace Frugal\Core\Exceptions;
 
-use Exception;
-
-class RouteNotFoundException extends Exception
+class RouteNotFoundException extends CustomException
 {
     public function __construct()
     {

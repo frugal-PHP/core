@@ -5,7 +5,9 @@ namespace Frugal\Core\Controllers;
 use React\Http\Message\Response;
 
 abstract class AbstractController
-{    
+{   
+    protected array $payload;
+
     public function sendJsonResponse(
         int $statusCode,
         mixed $message

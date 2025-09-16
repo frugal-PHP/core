@@ -2,6 +2,8 @@
 
 namespace Frugal\Core\Services;
 
+use Wilaak\Http\RadixRouter;
+
 class Bootstrap
 {
     public static array $compiledRoutes = [];
@@ -17,24 +19,20 @@ class Bootstrap
         }
     }
 
-    public static function compileRoute(string $staticFile, string $dynamicFile) : void
+    public static function addCommand(string $commandTitle, string $commandClassName)
     {
-        $staticRoutes = require $staticFile;
-        foreach($staticRoutes as $method => $routes) {
-            foreach($routes as $uri => $handler) {
-                self::$compiledRoutes['static'][$method][$uri] = $handler;
-            }
-        }
+        self::$commands[$commandTitle] = $commandClassName;
+    }
 
-        $dynamicRoutes = require $dynamicFile;
-        foreach ($dynamicRoutes as $method => $routes) {
-            foreach ($routes as $routePath => $handler) {
-                $pattern = preg_replace('#\{(\w+)\}#', '(?P<$1>[^/]+)', $routePath);
-                $pattern = "#^" . $pattern . "$#";
-                self::$compiledRoutes['dynamic'][$method][] = [
-                    'pattern' => $pattern,
-                    'handler' => $handler
-                ];
+    public static function compileRoute(
+        string $routingFile, 
+        RadixRouter $router
+    ) : void
+    {
+        $routes = require $routingFile;
+        foreach($routes as $method => $data) {
+            foreach($data as $uri => $handler) {
+                $router->add($method, $uri, $handler);
             }
         }
     }

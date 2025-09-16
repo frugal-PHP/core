@@ -6,7 +6,8 @@
         "react/http": "^1.11",
         "react/socket": "^1.16",
         "minicli/minicli": "^4.2",
-        "react/async": "^4.3"
+        "react/async": "^4.3",
+        "wilaak/radix-router": "^2.1"
     },
     "autoload": {
         "psr-4": {
