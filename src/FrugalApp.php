@@ -15,13 +15,17 @@ use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
+use React\Socket\ConnectionInterface;
+use React\Socket\SecureServer;
 use React\Socket\SocketServer;
 use Wilaak\Http\RadixRouter;
 use Throwable;
 
 class FrugalApp
 {
-    public static function run(array $middlewares = []) : void
+    private static array $connections;
+
+    public static function run(array $middlewares = [], ?array $sslContext = null) : void
     {
         define('START_TS', microtime(true));
         define('MEMORY_ON_START', memory_get_usage(true));
@@ -31,6 +35,10 @@ class FrugalApp
         if(getenv('SERVER_HOST') === false || getenv('SERVER_PORT') === false) {
             echo "\n⚠️ --- Server need SERVER_HOST and SERVER_PORT in .env defined to start.\nAbort.\n\n";
             exit;
+        }
+
+        if(getenv('ROOT_DIR') === false) {
+            echo "\n⚠️ --- ROOT_DIR in .env needs to be defined to start.\nAbort.\n\n";
         }
 
         Bootstrap::autoloadPlugins();
@@ -46,10 +54,12 @@ class FrugalApp
 
         // Routing
         $router = new RadixRouter();
-        $routes = require $ROOT_DIR."/config/routing.php";
+        $routes = require ROOT_DIR."/config/routing.php";
+        echo "⚙️ Chargement du routing \n";
         foreach($routes as $method => $data) {
             foreach($data as $uri => $handler) {
                 $router->add($method, $uri, $handler);
+                echo "  Route ajoutée : ($method) $uri\n";
             }
         }
 
@@ -97,12 +107,28 @@ class FrugalApp
         $server = new HttpServer(function($request) use ($controller, $middlewares) {
             $queryStart = microtime(true);
             $memoryStartUsage = memory_get_usage(true);
+
+            // Récupérer l'ID de connexion à partir des paramètres du serveur
+            $remoteAddr = $request->getServerParams()['REMOTE_ADDR'] ?? '';
+            $remotePort = $request->getServerParams()['REMOTE_PORT'] ?? '';
+            $connectionId = "tls://".$remoteAddr . ':' . $remotePort;
+            
+            // Ajouter les informations de connexion à la requête
+            $connection = self::$connections[$connectionId] ?? null;
+            $request = $request->withAttribute('connection', $connection);
+
             $middlewareRunner = new MiddlewareRunner(
                 array_merge([new BodyParserMiddleware()], $middlewares)
             );
 
-            $promise = $controller($middlewareRunner($request), $queryStart)
-                ->then(function(ResponseInterface $response) use ($request, $memoryStartUsage, $queryStart) {
+            try {
+                $output = $controller($middlewareRunner($request), $queryStart);
+                if($output instanceof Response) {
+                    return $output;
+                }
+
+                return $output->then(function(ResponseInterface $response) use ($request, $memoryStartUsage, $queryStart, $controller) 
+                {
                     LogService::logAccess(
                         request: $request,
                         queryStart: $queryStart,
@@ -114,17 +140,33 @@ class FrugalApp
                 ->catch(function(Throwable $e) use ($request, $memoryStartUsage, $queryStart) {
                     return ResponseService::error($e, $request, $queryStart);
                 });
-
-            return $promise;
+            } catch (Throwable $e) {
+                return ResponseService::error($e, $request, $queryStart);
+            }
         });
 
         $socket = new SocketServer(getenv('SERVER_HOST').":".getenv('SERVER_PORT'));
+        if($sslContext !== null) {
+            $socket = new SecureServer(context: $sslContext, tcp: $socket);
+            echo "\n✅ SSL activé\n";
+        } 
+        
         $server->listen($socket);
 
+        $socket->on('connection', function (ConnectionInterface $conn) {
+            $remoteAddress = $conn->getRemoteAddress();
+            self::$connections[$remoteAddress] = $conn;
+
+            // Nettoyez lorsque la connexion se ferme
+            $conn->on('close', function () use ($remoteAddress) {
+                unset(self::$connections[$remoteAddress]);
+            });
+        });
+        
         $memoryPeak = memory_get_peak_usage(true)/1024/1024;
         $startDelay = round(microtime(true) - START_TS,4);
 
-        echo "\n✅ Serveur lancé sur http://".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
+        echo "\n✅ Serveur lancé sur ".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
         echo "🕒 Lancement en ".$startDelay."s\n";
         echo "🧠 Mémoire consommée : ".$memoryPeak." Mb\n\n";
         Loop::get()->run();
@@ -146,26 +188,56 @@ class FrugalApp
             return $deferred->promise();
         }
 
-        $advance = function ($yielded = null) use (&$advance, $gen, $deferred) {
+        $onFulfilled = function($value) use (&$next, $gen) {
             try {
-                $yielded = $gen->send($yielded);
+                var_dump('kkkk');
+                var_dump($value);
+                $next($gen->send($value));
+            } catch (\Throwable $e) {
+                $next($e);
+            }
+        };
 
-                if ($yielded instanceof PromiseInterface) {
-                    $yielded->then(
-                        fn($value) => $advance($value),
-                        fn($err)   => $deferred->reject($err)
-                    );
-                } elseif ($gen->valid()) {
-                    throw new \RuntimeException("Generator yielded a non-promise value");
+        $onRejected = function($reason) use (&$next, $gen) {
+            try {
+                var_dump('fffff');
+                $next($gen->throw($reason));
+            } catch (\Throwable $e) {
+                $next($e);
+            }
+        };
+
+        $next = function($value) use ($deferred, &$onFulfilled, &$onRejected, $gen) {
+            var_dump('neseee');
+            try {
+                if ($value instanceof \Generator) {
+                    // Si c'est un autre générateur, on le transforme en promise
+                    $value = self::coroutine(function() use ($value) { yield from $value; });
+                }
+
+                if ($value instanceof PromiseInterface) {
+                    var_dump('promise');
+                    $value->then($onFulfilled, $onRejected);
+                } else if ($gen->valid()) {
+                    var_dump('valsuivante');
+                    // Continue avec la valeur suivante
+                    $onFulfilled($value);
                 } else {
-                    $deferred->resolve($gen->getReturn());
+                    var_dump('gen tereminé');
+                    var_dump($value);
+                    // Générateur terminé, on résout avec la valeur de retour
+                    $deferred->resolve($value);
                 }
             } catch (\Throwable $e) {
                 $deferred->reject($e);
             }
         };
 
-        $advance();
+        try {
+            $next($gen->current());
+        } catch (\Throwable $e) {
+            $deferred->reject($e);
+        }
 
         return $deferred->promise();
     }

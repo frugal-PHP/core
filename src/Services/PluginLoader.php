@@ -7,7 +7,7 @@ class PluginLoader
     public static function getPlugins() : array
     {
         $plugins = [];
-        $psr4classesAndDirectories = require getenv('ROOT_DIR').'/vendor/composer/autoload_psr4.php';
+        $psr4classesAndDirectories = require ROOT_DIR.'/vendor/composer/autoload_psr4.php';
         foreach($psr4classesAndDirectories as $namespace => $paths) {
             if(strpos($namespace,'FrugalPhpPlugin') === 0) {
                 $pluginConfigClass = rtrim($namespace, '\\') . '\\Plugin';

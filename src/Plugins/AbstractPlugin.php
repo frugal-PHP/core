@@ -11,16 +11,8 @@ abstract class AbstractPlugin
 
     public static function init() : void
     {
-        echo "⚙️  Chargement de ".static::PLUGIN_NAME."\n";
+        echo "⚙️ Chargement de ".static::PLUGIN_NAME."\n";
         static::registerServices();
-    }
-
-    protected static function loadRoutes(?string $staticPath = null, ?string $dynamicPath = null)
-    {
-        Bootstrap::compileRoute(
-            staticFile: $staticPath,
-            dynamicFile: $dynamicPath
-        );
     }
 
     protected static function loadCommands(array $commands) : void

@@ -30,6 +30,7 @@ class LogService
         echo "Erreur : {$e->getMessage()}\n";
         echo "Line : {$e->getLine()}\n";
         echo "File : {$e->getFile()}\n";
+        var_dump($e->getTraceAsString());
 
         if($e instanceof RuntimeException) {
             echo "Stack : {$e->getTraceAsString()}\n";
