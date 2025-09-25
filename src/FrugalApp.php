@@ -4,20 +4,20 @@ namespace Frugal\Core;
 
 use Frugal\Core\Commands\CommandInterpreter;
 use Frugal\Core\Middlewares\BodyParserMiddleware;
+use Frugal\Core\Middlewares\PayloadParserMiddleware;
+use Frugal\Core\Middlewares\RoutingMiddleware;
 use Frugal\Core\Services\Bootstrap;
 use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\MiddlewareRunner;
-use Frugal\Core\Services\ResponseService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
 use React\Http\Message\Response;
-use React\Promise\Deferred;
-use React\Promise\PromiseInterface;
 use React\Socket\ConnectionInterface;
 use React\Socket\SecureServer;
 use React\Socket\SocketServer;
+use RuntimeException;
 use Wilaak\Http\RadixRouter;
 use Throwable;
 
@@ -25,7 +25,11 @@ class FrugalApp
 {
     private static array $connections;
 
-    public static function run(array $middlewares = [], ?array $sslContext = null) : void
+    public static function run(
+        object $exceptionManager,
+        array $middlewares = [],
+        ?array $sslContext = null
+    ) : void
     {
         define('START_TS', microtime(true));
         define('MEMORY_ON_START', memory_get_usage(true));
@@ -63,48 +67,36 @@ class FrugalApp
             }
         }
 
+        $middlewares = [new RoutingMiddleware($router), new BodyParserMiddleware(), new PayloadParserMiddleware(), ...$middlewares];
+
         $controller = function (ServerRequestInterface $request, float $queryStart) use ($router) {
-            try {
-                $result = $router->lookup(
-                    method: $request->getMethod(), 
-                    path:$request->getUri()->getPath()
-                );
+            $result = $request->getAttribute('route_details');
+            switch ($result['code']) {
+                case 200:
+                    $route = $result['handler'];
 
-                switch ($result['code']) {
-                    case 200:
-                       $route = $result['handler'];
-
-                        if (is_array($route) && isset($route['handler'])) {
-                            $class = $route['handler'];
-                            return (new $class)(
-                                $request,
-                                $route['action'] ?? null,
-                                $route['entityClassName'] ?? null,
-                                $route['payloadClassName'] ?? null,
-                                $result['params']['id'] ?? null
-                            );
+                    if (is_array($route)) {
+                        if(!array_key_exists('handler', $route)) {
+                            throw new RuntimeException("Route parameters error. No handler for route ".$request->getUri());
                         }
+                        $route = $route['handler'];
+                    }
 
-                        return (new $route)($request, ...$result['params']);
-                    case 404:
-                        // No matching route found
-                        return \React\Promise\resolve(
-                            new Response(Response::STATUS_NOT_FOUND)
-                        );
-                    case 405:
-                        // Method not allowed for this route
-                        return \React\Promise\resolve(
-                            new Response(Response::STATUS_METHOD_NOT_ALLOWED, ['Allow' => implode(', ', $result['allowed_methods'])])
-                        );
-                }
+                    return (new $route)($request, ...$result['params']);
+                case 404:
+                    // No matching route found
+                    return \React\Promise\resolve(
+                        new Response(Response::STATUS_NOT_FOUND)
+                    );
+                case 405:
+                    // Method not allowed for this route
+                    return \React\Promise\resolve(
+                        new Response(Response::STATUS_METHOD_NOT_ALLOWED, ['Allow' => implode(', ', $result['allowed_methods'])])
+                    );
             }
-            catch (Throwable $e) {
-                return ResponseService::error(e: $e, req: $request, start: $queryStart );
-            }
-
         };
 
-        $server = new HttpServer(function($request) use ($controller, $middlewares) {
+        $server = new HttpServer(function($request) use ($controller, $middlewares, $exceptionManager) {
             $queryStart = microtime(true);
             $memoryStartUsage = memory_get_usage(true);
 
@@ -117,31 +109,24 @@ class FrugalApp
             $connection = self::$connections[$connectionId] ?? null;
             $request = $request->withAttribute('connection', $connection);
 
-            $middlewareRunner = new MiddlewareRunner(
-                array_merge([new BodyParserMiddleware()], $middlewares)
-            );
+            $middlewareRunner = new MiddlewareRunner($middlewares);
 
             try {
-                $output = $controller($middlewareRunner($request), $queryStart);
-                if($output instanceof Response) {
-                    return $output;
-                }
+                return $controller($middlewareRunner($request), $queryStart)
+                    ->then(function(ResponseInterface $response) use ($request, $memoryStartUsage, $queryStart) 
+                    {
+                        LogService::logAccess(
+                            request: $request,
+                            queryStart: $queryStart,
+                            memoryStartUsage: $memoryStartUsage
+                        );
 
-                return $output->then(function(ResponseInterface $response) use ($request, $memoryStartUsage, $queryStart, $controller) 
-                {
-                    LogService::logAccess(
-                        request: $request,
-                        queryStart: $queryStart,
-                        memoryStartUsage: $memoryStartUsage
-                    );
-
-                    return $response;
-                })
-                ->catch(function(Throwable $e) use ($request, $memoryStartUsage, $queryStart) {
-                    return ResponseService::error($e, $request, $queryStart);
-                });
+                        return $response;
+                    })->otherwise(function (Throwable $e) use ($exceptionManager) {
+                        return $exceptionManager($e);
+                    });
             } catch (Throwable $e) {
-                return ResponseService::error($e, $request, $queryStart);
+                return $exceptionManager($e);
             }
         });
 
@@ -170,75 +155,5 @@ class FrugalApp
         echo "🕒 Lancement en ".$startDelay."s\n";
         echo "🧠 Mémoire consommée : ".$memoryPeak." Mb\n\n";
         Loop::get()->run();
-    }
-
-    /**
-     * Ai-generated
-     * @param callable $generatorFn 
-     * @return PromiseInterface 
-     */
-    public static function coroutine(callable $generatorFn): PromiseInterface
-    {
-        $deferred = new Deferred();
-
-        try {
-            $gen = $generatorFn();
-        } catch (\Throwable $e) {
-            $deferred->reject($e);
-            return $deferred->promise();
-        }
-
-        $onFulfilled = function($value) use (&$next, $gen) {
-            try {
-                var_dump('kkkk');
-                var_dump($value);
-                $next($gen->send($value));
-            } catch (\Throwable $e) {
-                $next($e);
-            }
-        };
-
-        $onRejected = function($reason) use (&$next, $gen) {
-            try {
-                var_dump('fffff');
-                $next($gen->throw($reason));
-            } catch (\Throwable $e) {
-                $next($e);
-            }
-        };
-
-        $next = function($value) use ($deferred, &$onFulfilled, &$onRejected, $gen) {
-            var_dump('neseee');
-            try {
-                if ($value instanceof \Generator) {
-                    // Si c'est un autre générateur, on le transforme en promise
-                    $value = self::coroutine(function() use ($value) { yield from $value; });
-                }
-
-                if ($value instanceof PromiseInterface) {
-                    var_dump('promise');
-                    $value->then($onFulfilled, $onRejected);
-                } else if ($gen->valid()) {
-                    var_dump('valsuivante');
-                    // Continue avec la valeur suivante
-                    $onFulfilled($value);
-                } else {
-                    var_dump('gen tereminé');
-                    var_dump($value);
-                    // Générateur terminé, on résout avec la valeur de retour
-                    $deferred->resolve($value);
-                }
-            } catch (\Throwable $e) {
-                $deferred->reject($e);
-            }
-        };
-
-        try {
-            $next($gen->current());
-        } catch (\Throwable $e) {
-            $deferred->reject($e);
-        }
-
-        return $deferred->promise();
     }
 }

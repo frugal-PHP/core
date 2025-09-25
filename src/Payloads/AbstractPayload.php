@@ -15,12 +15,11 @@ abstract readonly class AbstractPayload implements PayloadInterface, JsonSeriali
 
     public static function checkMandatory(array $payload): void
     { 
-         foreach(static::getMandatoryFields() as $field) {
+        foreach(static::getMandatoryFields() as $field) {
             if(!isset($payload[$field])) {
                 throw new InvalidArgumentException(code: 400, message: "Field $field is mandatory");
             }
         }
-
     }
 
     static public function fromRequest(ServerRequestInterface $request) : self
