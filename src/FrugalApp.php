@@ -7,6 +7,7 @@ use Frugal\Core\Middlewares\BodyParserMiddleware;
 use Frugal\Core\Middlewares\PayloadParserMiddleware;
 use Frugal\Core\Middlewares\RoutingMiddleware;
 use Frugal\Core\Services\Bootstrap;
+use Frugal\Core\Services\FrugalContainer;
 use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\MiddlewareRunner;
 use Psr\Http\Message\ResponseInterface;
@@ -57,7 +58,9 @@ class FrugalApp
         }
 
         // Routing
-        $router = new RadixRouter();
+        FrugalContainer::getInstance()->set('router', fn() => new RadixRouter());
+
+        $router = FrugalContainer::getInstance()->get('router');
         $routes = require ROOT_DIR."/config/routing.php";
         echo "⚙️ Chargement du routing \n";
         foreach($routes as $method => $data) {
@@ -69,7 +72,7 @@ class FrugalApp
 
         $middlewares = [new RoutingMiddleware($router), new BodyParserMiddleware(), new PayloadParserMiddleware(), ...$middlewares];
 
-        $controller = function (ServerRequestInterface $request, float $queryStart) use ($router) {
+        $controller = function (ServerRequestInterface $request) {
             $result = $request->getAttribute('route_details');
             switch ($result['code']) {
                 case 200:
