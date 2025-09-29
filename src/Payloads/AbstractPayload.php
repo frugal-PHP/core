@@ -2,6 +2,7 @@
 
 namespace Frugal\Core\Payloads;
 
+use Frugal\Core\Exceptions\InvalidPayloadException;
 use Frugal\Core\Interfaces\PayloadInterface;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -17,7 +18,7 @@ abstract readonly class AbstractPayload implements PayloadInterface, JsonSeriali
     { 
         foreach(static::getMandatoryFields() as $field) {
             if(!isset($payload[$field])) {
-                throw new InvalidArgumentException(code: 400, message: "Field $field is mandatory");
+                throw new InvalidPayloadException(message: "Field $field is mandatory");
             }
         }
     }
@@ -26,7 +27,7 @@ abstract readonly class AbstractPayload implements PayloadInterface, JsonSeriali
     {
         $payload = $request->getParsedBody();
         if (!is_array($payload)) {
-            throw new InvalidArgumentException('Invalid payload: expected JSON object / form array');
+            throw new InvalidPayloadException('Invalid payload: empty payload or invalid JSON object / form array');
         }
 
         static::checkMandatory($payload);
