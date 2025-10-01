@@ -50,7 +50,7 @@ class CrudController
                         });
                 })
                 ->then(fn(EntityInterface $entity) => $this->afterCreate($entity))
-                ->then(fn() => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: null));
+                ->then(fn(?string $message) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: $message));
     }
 
     /**
@@ -70,7 +70,7 @@ class CrudController
             ->then(fn(EntityInterface $entity) => $this->beforeDelete($entity)->then(fn() => $entity))
             ->then(fn(EntityInterface $entity) => $repository->delete($id)->then(fn() => $entity)) 
             ->then(fn(EntityInterface $entity) => $this->afterDelete($entity))            
-            ->then(fn() => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: null));
+            ->then(fn(?string $message) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: $message));
     }
 
     protected function retrieve(?string $id = null) : PromiseInterface
@@ -107,7 +107,7 @@ class CrudController
                             ->then(fn() => $entity);
                     })
                     ->then(fn(EntityInterface $entity) => $this->afterUpdate($entity))
-                    ->then(fn() => ResponseService::sendJsonResponse(Response::STATUS_OK, null));
+                    ->then(fn(?string $message) => ResponseService::sendJsonResponse(Response::STATUS_OK, $message));
             });
     }
 
