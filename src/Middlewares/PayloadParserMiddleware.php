@@ -3,11 +3,12 @@
 namespace Frugal\Core\Middlewares;
 
 use Frugal\Core\Helpers\RoutingHelper;
+use Frugal\Core\Interfaces\MiddlewareInterface;
 use Frugal\Core\Interfaces\PayloadInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 
-class PayloadParserMiddleware
+class PayloadParserMiddleware implements MiddlewareInterface
 {
     public function __invoke(ServerRequestInterface $request, ?callable $next)
     {
