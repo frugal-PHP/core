@@ -33,4 +33,9 @@ class Bootstrap
             $plugin::init();
         }
     }
+
+    public static function env(string $varName) : mixed
+    {
+        return $_ENV[$varName];
+    }
 }

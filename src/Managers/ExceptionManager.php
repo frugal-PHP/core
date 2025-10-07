@@ -3,12 +3,13 @@
 namespace Frugal\Core\Managers;
 
 use Frugal\Core\Exceptions\BusinessException;
+use Frugal\Core\Interfaces\ExceptionManagerInterface;
 use Frugal\Core\Services\ResponseService;
 use FrugalPhpPlugin\Orm\Exceptions\EntityNotFoundException;
 use React\Http\Message\Response;
 use Throwable;
 
-class ExceptionManager
+class ExceptionManager implements ExceptionManagerInterface
 {
     public function __invoke(Throwable $e)
     {
