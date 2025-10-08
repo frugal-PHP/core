@@ -8,6 +8,6 @@ class RoutingHelper
 {
     public static function getRouteDetails(ServerRequestInterface $request, string $key) : mixed
     {
-        return $request->getAttribute('route_details')[$key] ?? null;
+        return $request->getAttribute('route_details')->$key ?? null;
     }
 }
