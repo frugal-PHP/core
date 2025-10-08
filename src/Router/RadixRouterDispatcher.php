@@ -2,8 +2,6 @@
 
 namespace Frugal\Core\Router;
 
-use Frugal\Core\Interfaces\RouterDispatcherInterface;
-use Frugal\Core\Interfaces\RoutingInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 use React\Promise\PromiseInterface;
@@ -12,21 +10,20 @@ use Wilaak\Http\RadixRouter;
 
 use function React\Promise\reject;
 
-class RadixRouterDispatcher implements RouterDispatcherInterface
+class RadixRouterDispatcher extends AbstractDispatcher 
 {
     protected RadixRouter $router;
 
-    public function __construct(
-        public RoutingInterface $routingMap
-    ) {
+    public function __construct() {
         $this->router = new RadixRouter();
+        $this->registerRoutes();
     }
 
-    public function registerRoutes(RoutingInterface $routing)
+    public function registerRoutes()
     {
-        foreach($routing->getAll() as $route) {
-            $this->router->add($route->getVerb()->value, $route->getUri(), ['handler' => $route->getHandler(), ...$route->getAdditionalParameters()]);
-            echo "  ➤ ".$route->getVerb()->value." ".$route->getUri()."\n";
+        foreach($this->getAllRoutes() as $routeDetails) {
+            $this->router->add($routeDetails->verb->value, $routeDetails->uri, $routeDetails);
+            echo "  ➤ ".$routeDetails->verb->value." ".$routeDetails->uri."\n";
         }
     }
 
@@ -39,23 +36,13 @@ class RadixRouterDispatcher implements RouterDispatcherInterface
 
         switch ($result['code']) {
             case 200:
-                $route = $result['handler'];
+                $request = $request->withAttribute('route_details', $result['handler']);
 
-                if (is_array($route)) {
-                    if(!array_key_exists('handler', $route)) {
-                        throw new RuntimeException("Route parameters error. No handler for route ".$request->getUri());
-                    }
-                    $handler = $route['handler'];
-                }
-
-                // A déplacer
-                $request = $request->withAttribute('route_details', $route);
-
-                return (new $handler)($request, ...$result['params']);
+                return (new $result['handler']->handler)($request, ...$result['params']);
             case 404:
                 // No matching route found
                 return \React\Promise\resolve(
-                    new Response(Response::STATUS_NOT_FOUND)
+                    new Response(status: Response::STATUS_NOT_FOUND, reason: "Route not found")
                 );
             case 405:
                 // Method not allowed for this route
