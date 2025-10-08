@@ -10,11 +10,11 @@ class PayloadHelper
 {
     public static function getPayload(ServerRequestInterface $request) : PayloadInterface
     {
-        $payload = $request->getAttribute('payload');
+        $payload = RoutingHelper::getRouteDetails($request, 'payloadClassName');
         if($payload === null) {
-            throw new RuntimeException("Payload requested but no payload is present in the request attributes");
+            throw new RuntimeException("Payload requested but no payload is present in the route details");
         }
 
-        return $payload;
+        return $payload::fromRequest($request);
     }
 }
