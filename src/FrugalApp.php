@@ -7,10 +7,11 @@ use Frugal\Core\Helpers\BenchmarkHelper;
 use Frugal\Core\Interfaces\ExceptionManagerInterface;
 use Frugal\Core\Interfaces\MiddlewareInterface;
 use Frugal\Core\Interfaces\RouterDispatcherInterface;
+use Frugal\Core\Managers\ExceptionManager;
 use Frugal\Core\Middlewares\BodyParserMiddleware;
-use Frugal\Core\Middlewares\PayloadParserMiddleware;
 use Frugal\Core\Services\Bootstrap;
 use Frugal\Core\Services\FrugalContainer;
+use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\MiddlewareRunner;
 use Frugal\Core\SSL\SslContext;
 use Psr\Http\Message\ResponseInterface;
@@ -25,11 +26,11 @@ use Throwable;
 class FrugalApp
 {
     private static array $connections;
-    private static array $globalMiddlewares;
+    private static array $globalMiddlewares = [];
 
     public static function run(
-        ExceptionManagerInterface $exceptionManager,
         RouterDispatcherInterface $router,
+        ?ExceptionManagerInterface $exceptionManager = null,
         ?SslContext $sslContext = null
     ) : void
     {
@@ -43,9 +44,12 @@ class FrugalApp
 
         $middlewareRunner = new MiddlewareRunner([
             new BodyParserMiddleware(), 
-            new PayloadParserMiddleware(), 
             ...self::$globalMiddlewares
         ]);
+
+        if($exceptionManager === null) {
+            $exceptionManager = new ExceptionManager();
+        }
 
         $server = self::setupHttpServer($router, $middlewareRunner, $exceptionManager, $sslContext);
         self::setUpServerInterface($server, $sslContext);
@@ -83,7 +87,7 @@ class FrugalApp
         RouterDispatcherInterface $router,
         MiddlewareRunner $middlewareRunner,
         ExceptionManagerInterface $exceptionManager,
-        ?array $sslContext
+        ?SslContext $sslContext
     ): HttpServer 
     {
         return new HttpServer(function($request) use ($router, $middlewareRunner, $exceptionManager, $sslContext) {
@@ -94,9 +98,14 @@ class FrugalApp
                 }
                 $request = $middlewareRunner($request);
 
+                LogService::logRequest($request);
                 return $router->dispatch($request)
-                    ->then(function(ResponseInterface $response) use ($benchmark) {
+                    ->then(function(ResponseInterface $response) use ($benchmark, $request) {
+                        LogService::logStatusCode($response);
+                        LogService::logMemory();
                         $benchmark->log("Temps traitement requete");
+                        echo PHP_EOL;
+
                         return $response;
                     })
                     ->catch(fn(Throwable $e) => $exceptionManager($e));
@@ -143,12 +152,14 @@ class FrugalApp
 
     private static function displayMetrics() : void
     {
-        $memoryPeak = memory_get_peak_usage(true)/1024/1024;
-        $startDelay = round(microtime(true) - START_TS,4);
+        $memoryPeak = memory_get_peak_usage(true)/1024;
+        $realMemory = memory_get_usage(true)/1024;
+        $startDelay = round(microtime(true) - START_TS,4) * 1000;
 
         echo "\n✅ Serveur lancé sur ".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
-        echo "🕒 Lancement en ".$startDelay."s\n";
-        echo "🧠 Mémoire consommée : ".$memoryPeak." Mb\n\n";
+        echo "🕒 Lancement en ".$startDelay."ms\n";
+        echo "🧠 Mémoire max consommée : ".$memoryPeak." Kb\n";
+        echo "🧠 Mémoire consommée : ".$realMemory." Kb\n\n";
     }
 
     public static function addGlobalMiddleware(MiddlewareInterface $middleware)

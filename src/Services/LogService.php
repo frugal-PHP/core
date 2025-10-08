@@ -2,35 +2,56 @@
 
 namespace Frugal\Core\Services;
 
-use Frugal\Core\Exceptions\CustomException;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use React\Http\Message\Response;
 use RuntimeException;
 use Throwable;
 
 class LogService
 {
-    public static function logAccess(ServerRequestInterface $request, float $queryStart, float $memoryStartUsage): void
+    public static function logMemory() : void
     {
-        $memReal = (memory_get_usage(true) - $memoryStartUsage)/1024/1024;
-        $memPeak = memory_get_peak_usage(true)/1024/1024;
-        $delay = (microtime(true) - $queryStart)*1000;
-        echo "✅ [{$request->getMethod()}] {$request->getUri()->getPath()}\n";
-        echo "Real: {$memReal} Mb\n";
-        echo "🧠 Peak : {$memPeak} Mb\n";
-        echo "🕒 {$delay}ms\n\n";
+        $memReal = memory_get_usage(true)/1024/1024;
+        echo "🧠 Current memory consumption : {$memReal} Mb".PHP_EOL;
     }
 
-    public static function logError(ServerRequestInterface $req, float $start, Throwable $e, int $status): void
+    public static function logRequest(ServerRequestInterface $request) : void
     {
-        $delay = round(microtime(true) - $start, 4) * 1000;
-        $mem   = memory_get_peak_usage(true)/1024/1024;
-        echo "❌ [{$req->getMethod()}] {$req->getUri()->getPath()} ($status)\n";
-        echo "🧠 Peak : {$mem} Mb\n";
-        echo "🕒 {$delay} ms\n\n";
+        echo "✅ Nouvelle requete : [{$request->getMethod()}] {$request->getUri()->getPath()}\n";
+    }
+
+    public static function logInfo(string $message) : void
+    {
+        echo "ℹ️ $message".PHP_EOL;
+    }
+
+    public static function logError(string $message) : void
+    {
+        echo "⛔ $message".PHP_EOL;
+    }
+
+    public static function logStatusCode(ResponseInterface $responseInterface)
+    {
+        $statusCode = $responseInterface->getStatusCode();
+
+        $icon = match (true) {
+            $statusCode >= 100 && $statusCode < 200 => '🔵',
+            $statusCode >= 200 && $statusCode < 300 => '🟢', 
+            $statusCode >= 300 && $statusCode < 400 => '🟣', 
+            $statusCode >= 400 && $statusCode < 500 => '🟠', 
+            $statusCode >= 500 => '🔴',                    
+            default => '⚫️', 
+        };
+
+        echo "{$icon} HTTP {$statusCode}" . PHP_EOL;
+    }
+
+    public static function logException(Throwable $e): void
+    {
         echo "Erreur : {$e->getMessage()}\n";
         echo "Line : {$e->getLine()}\n";
         echo "File : {$e->getFile()}\n";
-        var_dump($e->getTraceAsString());
 
         if($e instanceof RuntimeException) {
             echo "Stack : {$e->getTraceAsString()}\n";
