@@ -2,7 +2,9 @@
 
 namespace Frugal\Core\Controllers;
 
+use Frugal\Core\Helpers\PayloadHelper;
 use Frugal\Core\Helpers\RoutingHelper;
+use Frugal\Core\Interfaces\PayloadInterface;
 use Frugal\Core\Mappers\CRUDEnum;
 use Frugal\Core\Services\ResponseService;
 use FrugalPhpPlugin\Orm\Exceptions\EntityNotFoundException;
@@ -19,10 +21,15 @@ use function React\Promise\resolve;
 class CrudController
 {
     protected ServerRequestInterface $request;
+    protected PayloadInterface $payload;
 
     public function __invoke(ServerRequestInterface $request, ?string $id = null) : PromiseInterface
     {
         $this->request = $request;
+
+        if(RoutingHelper::getRouteDetails($request, 'payloadClassName') !== null) {
+            $this->payload = PayloadHelper::getPayload($request);
+        }
 
         switch(RoutingHelper::getRouteDetails($this->request, 'action')) {
             case CRUDEnum::CREATE : return $this->create();
@@ -50,7 +57,7 @@ class CrudController
                         });
                 })
                 ->then(fn(EntityInterface $entity) => $this->afterCreate($entity))
-                ->then(fn(?string $message) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: $message));
+                ->then(fn($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: $data));
     }
 
     /**
@@ -70,7 +77,7 @@ class CrudController
             ->then(fn(EntityInterface $entity) => $this->beforeDelete($entity)->then(fn() => $entity))
             ->then(fn(EntityInterface $entity) => $repository->delete($id)->then(fn() => $entity)) 
             ->then(fn(EntityInterface $entity) => $this->afterDelete($entity))            
-            ->then(fn(?string $message) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: $message));
+            ->then(fn($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: $data));
     }
 
     protected function retrieve(?string $id = null) : PromiseInterface
@@ -107,7 +114,7 @@ class CrudController
                             ->then(fn() => $entity);
                     })
                     ->then(fn(EntityInterface $entity) => $this->afterUpdate($entity))
-                    ->then(fn(?string $message) => ResponseService::sendJsonResponse(Response::STATUS_OK, $message));
+                    ->then(fn($data) => ResponseService::sendJsonResponse(Response::STATUS_OK, $data));
             });
     }
 

@@ -4,11 +4,10 @@ namespace Frugal\Core\Payloads;
 
 use Frugal\Core\Exceptions\InvalidPayloadException;
 use Frugal\Core\Interfaces\PayloadInterface;
-use InvalidArgumentException;
 use JsonSerializable;
 use Psr\Http\Message\ServerRequestInterface;
 
-abstract readonly class AbstractPayload implements PayloadInterface, JsonSerializable
+abstract class AbstractPayload implements PayloadInterface, JsonSerializable
 {
     abstract protected static function getMandatoryFields() : array;
     abstract public function getRequestBodyArray() : array;

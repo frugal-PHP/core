@@ -14,7 +14,8 @@ class ResponseService
         $response = new Response($statusCode, $headers);
         
         if($message !== null) {
-            $response->getBody()->write(json_encode($message));
+            $json = json_encode($message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $response->getBody()->write($json);
         }
         
         return $response;

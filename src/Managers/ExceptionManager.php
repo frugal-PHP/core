@@ -4,6 +4,7 @@ namespace Frugal\Core\Managers;
 
 use Frugal\Core\Exceptions\BusinessException;
 use Frugal\Core\Interfaces\ExceptionManagerInterface;
+use Frugal\Core\Services\LogService;
 use Frugal\Core\Services\ResponseService;
 use FrugalPhpPlugin\Orm\Exceptions\EntityNotFoundException;
 use React\Http\Message\Response;
@@ -27,7 +28,7 @@ class ExceptionManager implements ExceptionManagerInterface
             );
         }
 
-        var_dump($e->getMessage(), $e->getLine(), $e->getTraceAsString());
+        LogService::logException($e);
         
         return ResponseService::sendJsonResponse(
             statusCode: Response::STATUS_INTERNAL_SERVER_ERROR,
