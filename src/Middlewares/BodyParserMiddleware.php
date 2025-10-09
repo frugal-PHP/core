@@ -15,7 +15,7 @@ class BodyParserMiddleware implements MiddlewareInterface
 
         $parsed = null;
 
-        if (str_starts_with($contentType, 'application/json')) {
+        if (str_starts_with($contentType, 'application/json') && $body !== "") {
             $parsed = json_decode($body, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new InvalidPayloadException("Invalid json body");
