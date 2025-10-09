@@ -92,13 +92,14 @@ class FrugalApp
     {
         return new HttpServer(function($request) use ($router, $middlewareRunner, $exceptionManager, $sslContext) {
             $benchmark = new BenchmarkHelper();
+            LogService::logRequest($request);
+
             try {
                 if($sslContext !== null) {
                     $request = self::handleConnectionTracking($request);
                 }
                 $request = $middlewareRunner($request);
 
-                LogService::logRequest($request);
                 return $router->dispatch($request)
                     ->then(function(ResponseInterface $response) use ($benchmark, $request) {
                         LogService::logStatusCode($response);
@@ -108,13 +109,28 @@ class FrugalApp
 
                         return $response;
                     })
-                    ->catch(fn(Throwable $e) => $exceptionManager($e));
+                    ->catch(function(Throwable $e) use ($benchmark, $exceptionManager) {
+                        LogService::logError($e->getMessage());
+                        LogService::logMemory();
+                        $benchmark->log("Temps traitement requete");
+
+                        echo PHP_EOL;
+
+                        return $exceptionManager($e);
+                    });
             } catch (Throwable $e) {
+                LogService::logRouteDetails($request);
+                LogService::logError($e->getMessage());
+                LogService::logMemory();
+                $benchmark->log("Temps traitement requete");
+
+                echo PHP_EOL;
+
                 return $exceptionManager($e);
             }
         });
     }
-
+    
     private static function handleConnectionTracking(ServerRequestInterface $request): ServerRequestInterface 
     {
         // Récupérer l'ID de connexion à partir des paramètres du serveur
