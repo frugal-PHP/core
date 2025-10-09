@@ -31,6 +31,11 @@ class LogService
         echo "⛔ $message".PHP_EOL;
     }
 
+    public static function logRouteDetails(ServerRequestInterface $request): void
+    {
+        var_dump($request->getAttribute('route_details'));
+    }
+
     public static function logStatusCode(ResponseInterface $responseInterface)
     {
         $statusCode = $responseInterface->getStatusCode();
