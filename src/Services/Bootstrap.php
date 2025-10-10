@@ -12,7 +12,7 @@ class Bootstrap
     public static function loadEnv(?string $filename = null) : void
     {
         $filename = $filename ?? ROOT_DIR."/.env";
-        if(file_exists($filename)) {
+        if (file_exists($filename)) {
             foreach (parse_ini_file($filename) as $key => $val) {
                 $_ENV[$key] = $val;
                 putenv("$key=$val");
@@ -29,7 +29,7 @@ class Bootstrap
 
     public static function autoloadPlugins() : void
     {
-        foreach(PluginLoader::getPlugins() as $plugin) {
+        foreach (PluginLoader::getPlugins() as $plugin) {
             $plugin::init();
         }
     }

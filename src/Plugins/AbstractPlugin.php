@@ -24,16 +24,16 @@ abstract class AbstractPlugin
     protected static function addStorage(string $storageName) : void
     {
         $storageDir = getenv('STORAGE_DIR').$storageName;
-        if(!file_exists($storageDir)) {
+        if (!file_exists($storageDir)) {
             mkdir($storageDir, 0777, true);
         }
     }
 
     protected static function checkEnvironmentVariables(array $envVars) : void
     {
-        foreach($envVars as $var) {
-            if(getenv($var) === false) {
-                echo "  ❌ variable d'environnement $var manquante.\n";       
+        foreach ($envVars as $var) {
+            if (getenv($var) === false) {
+                echo "  ❌ variable d'environnement $var manquante.\n";
             }
         }
     }

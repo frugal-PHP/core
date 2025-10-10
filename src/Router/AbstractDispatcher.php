@@ -21,7 +21,8 @@ abstract class AbstractDispatcher implements RouterDispatcherInterface
         return $allRoutes;
     }
 
-    protected function getPsr4NamespaceForSrc(): ?string {
+    protected function getPsr4NamespaceForSrc(): ?string
+    {
         $composerData = json_decode(file_get_contents(ROOT_DIR."/composer.json"), true);
 
         if (!isset($composerData['autoload']['psr-4'])) {

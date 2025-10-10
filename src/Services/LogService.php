@@ -42,11 +42,11 @@ class LogService
 
         $icon = match (true) {
             $statusCode >= 100 && $statusCode < 200 => '🔵',
-            $statusCode >= 200 && $statusCode < 300 => '🟢', 
-            $statusCode >= 300 && $statusCode < 400 => '🟣', 
-            $statusCode >= 400 && $statusCode < 500 => '🟠', 
-            $statusCode >= 500 => '🔴',                    
-            default => '⚫️', 
+            $statusCode >= 200 && $statusCode < 300 => '🟢',
+            $statusCode >= 300 && $statusCode < 400 => '🟣',
+            $statusCode >= 400 && $statusCode < 500 => '🟠',
+            $statusCode >= 500 => '🔴',
+            default => '⚫️',
         };
 
         echo "{$icon} HTTP {$statusCode}" . PHP_EOL;
@@ -58,7 +58,7 @@ class LogService
         echo "Line : {$e->getLine()}\n";
         echo "File : {$e->getFile()}\n";
 
-        if($e instanceof RuntimeException) {
+        if ($e instanceof RuntimeException) {
             echo "Stack : {$e->getTraceAsString()}\n";
         }
     }

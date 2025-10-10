@@ -10,29 +10,30 @@ use Wilaak\Http\RadixRouter;
 
 use function React\Promise\reject;
 
-class RadixRouterDispatcher extends AbstractDispatcher 
+class RadixRouterDispatcher extends AbstractDispatcher
 {
     protected RadixRouter $router;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->router = new RadixRouter();
         $this->registerRoutes();
     }
 
     public function registerRoutes()
     {
-        foreach($this->getAllRoutes() as $routeDetails) {
+        foreach ($this->getAllRoutes() as $routeDetails) {
             $this->router->add($routeDetails->verb->value, $routeDetails->uri, $routeDetails);
             echo "  ➤ ".$routeDetails->verb->value." ".$routeDetails->uri."\n";
         }
     }
 
     public function dispatch(ServerRequestInterface $request) : PromiseInterface
-    { 
+    {
         $result = $this->router->lookup(
-                method: $request->getMethod(), 
-                path:$request->getUri()->getPath()
-            );
+            method: $request->getMethod(),
+            path:$request->getUri()->getPath()
+        );
 
         switch ($result['code']) {
             case 200:

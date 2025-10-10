@@ -32,22 +32,21 @@ class FrugalApp
         RouterDispatcherInterface $router,
         ?ExceptionManagerInterface $exceptionManager = null,
         ?SslContext $sslContext = null
-    ) : void
-    {
+    ) : void {
         define('START_TS', microtime(true));
 
         // Bootstrap
         self::initializeEnv();
         self::maybeRunCli();
 
-        FrugalContainer::getInstance()->set('router', fn() => $router);
+        FrugalContainer::getInstance()->set('router', fn () => $router);
 
         $middlewareRunner = new MiddlewareRunner([
-            new BodyParserMiddleware(), 
+            new BodyParserMiddleware(),
             ...self::$globalMiddlewares
         ]);
 
-        if($exceptionManager === null) {
+        if ($exceptionManager === null) {
             $exceptionManager = new ExceptionManager();
         }
 
@@ -58,15 +57,15 @@ class FrugalApp
         Loop::get()->run();
     }
 
-    private static function initializeEnv(): void 
+    private static function initializeEnv(): void
     {
         Bootstrap::loadEnv();
-        if(Bootstrap::env('SERVER_HOST') === false || Bootstrap::env('SERVER_PORT') === false) {
+        if (Bootstrap::env('SERVER_HOST') === false || Bootstrap::env('SERVER_PORT') === false) {
             echo "\n⚠️ --- Server need SERVER_HOST and SERVER_PORT in .env defined to start.\nAbort.\n\n";
             exit;
         }
 
-        if(Bootstrap::env('ROOT_DIR') === false) {
+        if (Bootstrap::env('ROOT_DIR') === false) {
             echo "\n⚠️ --- ROOT_DIR in .env needs to be defined to start.\nAbort.\n\n";
             exit;
         }
@@ -74,9 +73,9 @@ class FrugalApp
         Bootstrap::autoloadPlugins();
     }
 
-    private static function maybeRunCli(): void 
+    private static function maybeRunCli(): void
     {
-        if($_SERVER['argc'] > 1) {
+        if ($_SERVER['argc'] > 1) {
             CommandInterpreter::run();
             self::displayMetrics();
             exit(0);
@@ -88,20 +87,19 @@ class FrugalApp
         MiddlewareRunner $middlewareRunner,
         ExceptionManagerInterface $exceptionManager,
         ?SslContext $sslContext
-    ): HttpServer 
-    {
-        return new HttpServer(function($request) use ($router, $middlewareRunner, $exceptionManager, $sslContext) {
+    ): HttpServer {
+        return new HttpServer(function ($request) use ($router, $middlewareRunner, $exceptionManager, $sslContext) {
             $benchmark = new BenchmarkHelper();
             LogService::logRequest($request);
 
             try {
-                if($sslContext !== null) {
+                if ($sslContext !== null) {
                     $request = self::handleConnectionTracking($request);
                 }
                 $request = $middlewareRunner($request);
 
                 return $router->dispatch($request)
-                    ->then(function(ResponseInterface $response) use ($benchmark, $request) {
+                    ->then(function (ResponseInterface $response) use ($benchmark, $request) {
                         LogService::logStatusCode($response);
                         LogService::logMemory();
                         $benchmark->log("Temps traitement requete");
@@ -109,7 +107,7 @@ class FrugalApp
 
                         return $response;
                     })
-                    ->catch(function(Throwable $e) use ($benchmark, $exceptionManager) {
+                    ->catch(function (Throwable $e) use ($benchmark, $exceptionManager) {
                         LogService::logError($e->getMessage());
                         LogService::logMemory();
                         $benchmark->log("Temps traitement requete");
@@ -131,7 +129,7 @@ class FrugalApp
         });
     }
     
-    private static function handleConnectionTracking(ServerRequestInterface $request): ServerRequestInterface 
+    private static function handleConnectionTracking(ServerRequestInterface $request): ServerRequestInterface
     {
         // Récupérer l'ID de connexion à partir des paramètres du serveur
         $remoteAddr = $request->getServerParams()['REMOTE_ADDR'] ?? '';
@@ -147,7 +145,7 @@ class FrugalApp
     private static function setUpServerInterface(HttpServer $server, ?SslContext $sslContext = null) : void
     {
         $socket = new SocketServer(Bootstrap::env('SERVER_HOST').":".Bootstrap::env('SERVER_PORT'));
-        if($sslContext !== null) {
+        if ($sslContext !== null) {
             $socket = new SecureServer(context: $sslContext->toArray(), tcp: $socket);
 
             $socket->on('connection', function (ConnectionInterface $conn) {
@@ -170,7 +168,7 @@ class FrugalApp
     {
         $memoryPeak = memory_get_peak_usage(true)/1024;
         $realMemory = memory_get_usage(true)/1024;
-        $startDelay = round(microtime(true) - START_TS,4) * 1000;
+        $startDelay = round(microtime(true) - START_TS, 4) * 1000;
 
         echo "\n✅ Serveur lancé sur ".getenv('SERVER_HOST').":".getenv('SERVER_PORT')."\n";
         echo "🕒 Lancement en ".$startDelay."ms\n";

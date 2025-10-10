@@ -14,16 +14,16 @@ class ExceptionManager implements ExceptionManagerInterface
 {
     public function __invoke(Throwable $e)
     {
-        if($e instanceof BusinessException) {
+        if ($e instanceof BusinessException) {
             return ResponseService::sendJsonResponse(
-                statusCode: $e->getCode(), 
+                statusCode: $e->getCode(),
                 message: $e->getMessage()
             );
         }
         
-        if($e instanceof EntityNotFoundException) {
+        if ($e instanceof EntityNotFoundException) {
             return ResponseService::sendJsonResponse(
-                statusCode: Response::STATUS_NOT_FOUND, 
+                statusCode: Response::STATUS_NOT_FOUND,
                 message: "Object not found"
             );
         }
