@@ -9,6 +9,7 @@ use Frugal\Core\Interfaces\MiddlewareInterface;
 use Frugal\Core\Interfaces\RouterDispatcherInterface;
 use Frugal\Core\Managers\ExceptionManager;
 use Frugal\Core\Middlewares\BodyParserMiddleware;
+use Frugal\Core\Plugins\AbstractPlugin;
 use Frugal\Core\Services\Bootstrap;
 use Frugal\Core\Services\FrugalContainer;
 use Frugal\Core\Services\LogService;
@@ -27,6 +28,7 @@ class FrugalApp
 {
     private static array $connections;
     private static array $globalMiddlewares = [];
+    private static array $pluginsToInitialize = [];
 
     public static function run(
         RouterDispatcherInterface $router,
@@ -37,6 +39,12 @@ class FrugalApp
 
         // Bootstrap
         self::initializeEnv();
+
+        // Initialize plugins
+        foreach(self::$pluginsToInitialize as $plugin) {
+            $plugin->init();
+        }
+
         self::maybeRunCli();
 
         FrugalContainer::getInstance()->set('router', fn () => $router);
@@ -69,8 +77,6 @@ class FrugalApp
             echo "\n⚠️ --- ROOT_DIR in .env needs to be defined to start.\nAbort.\n\n";
             exit;
         }
-
-        Bootstrap::autoloadPlugins();
     }
 
     private static function maybeRunCli(): void
@@ -179,5 +185,10 @@ class FrugalApp
     public static function addGlobalMiddleware(MiddlewareInterface $middleware)
     {
         self::$globalMiddlewares[] = $middleware;
+    }
+
+    public static function addPlugin(AbstractPlugin $plugin) 
+    {
+        self::$pluginsToInitialize[] = $plugin;
     }
 }

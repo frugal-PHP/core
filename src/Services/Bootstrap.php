@@ -27,13 +27,6 @@ class Bootstrap
         self::$commands[$commandTitle] = $commandClassName;
     }
 
-    public static function autoloadPlugins() : void
-    {
-        foreach (PluginLoader::getPlugins() as $plugin) {
-            $plugin::init();
-        }
-    }
-
     public static function env(string $varName) : mixed
     {
         return $_ENV[$varName];
