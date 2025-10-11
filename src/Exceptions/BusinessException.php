@@ -4,4 +4,6 @@ namespace Frugal\Core\Exceptions;
 
 use Exception;
 
-abstract class BusinessException extends Exception {}
+abstract class BusinessException extends Exception
+{
+}

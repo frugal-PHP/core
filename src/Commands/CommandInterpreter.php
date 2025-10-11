@@ -10,7 +10,7 @@ class CommandInterpreter
     public static function run()
     {
         $app = new App();
-        foreach(Bootstrap::$commands as $title => $command) {
+        foreach (Bootstrap::$commands as $title => $command) {
             $app->registerCommand($title, [$command, 'run']);
         }
 

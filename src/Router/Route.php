@@ -10,5 +10,6 @@ class Route
         public string $handler,
         public string $uri,
         public HTTPVerb $verb
-    ) {}
+    ) {
+    }
 }

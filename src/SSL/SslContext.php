@@ -13,7 +13,8 @@ readonly class SslContext
         public bool $capturePeerCert,
         public bool $capturePeerCertChain,
         public bool $verifyPeerName
-    ) {}
+    ) {
+    }
 
     public function toArray() : array
     {

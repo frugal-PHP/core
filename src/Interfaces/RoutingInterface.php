@@ -15,7 +15,7 @@ interface RoutingInterface
     public function head(string $uri, string $handler): Route;
 
     /**
-     * @return Route[] 
+     * @return Route[]
      */
     public function getAll() : array;
 }

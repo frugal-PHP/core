@@ -9,7 +9,7 @@ enum CRUDEnum
     case UPDATE;
     case DELETE;
 
-    public static function getCRUDActionFromHttpVerb(HTTPVerb $verb) 
+    public static function getCRUDActionFromHttpVerb(HTTPVerb $verb)
     {
         return match($verb) {
             HTTPVerb::POST   => self::CREATE,
@@ -18,6 +18,6 @@ enum CRUDEnum
             HTTPVerb::PATCH  => self::UPDATE,
             HTTPVerb::DELETE => self::DELETE,
             default           => throw new \InvalidArgumentException("HTTP verb {$verb->name} has no CRUD equivalent.")
-        };    
+        };
     }
 }

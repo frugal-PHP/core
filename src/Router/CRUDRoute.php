@@ -18,14 +18,13 @@ class CRUDRoute extends Route
         string $entityClassName,
         ?string $payloadClassName = null,
         ?string $handler = CrudController::class,
-    )
-    {
+    ) {
         $this->action = CRUDEnum::getCRUDActionFromHttpVerb($verb);
         $this->entityClassName = $entityClassName;
         $this->payloadClassName = $payloadClassName;
         parent::__construct(
             handler: $handler,
-            uri: $uri, 
+            uri: $uri,
             verb: $verb
         );
     }

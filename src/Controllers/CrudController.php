@@ -27,11 +27,11 @@ class CrudController
     {
         $this->request = $request;
 
-        if(RoutingHelper::getRouteDetails($request, 'payloadClassName') !== null) {
+        if (RoutingHelper::getRouteDetails($request, 'payloadClassName') !== null) {
             $this->payload = PayloadHelper::getPayload($request);
         }
 
-        switch(RoutingHelper::getRouteDetails($this->request, 'action')) {
+        switch (RoutingHelper::getRouteDetails($this->request, 'action')) {
             case CRUDEnum::CREATE : return $this->create();
             case CRUDEnum::UPDATE : return $this->update($id);
             case CRUDEnum::DELETE : return $this->delete($id);
@@ -46,26 +46,26 @@ class CrudController
         $entity = $this->getCreatedEntity($this->request);
 
         return $this->beforeCreate($entity)
-                ->then(function(EntityInterface $entity) use ($repository) {
+                ->then(function (EntityInterface $entity) use ($repository) {
                     return $repository->create($entity)
-                        ->then(function($result) use($entity, $repository) {
-                            if($entity->id === null) {
+                        ->then(function ($result) use ($entity, $repository) {
+                            if ($entity->id === null) {
                                 $entity->id = $repository->getDatabaseManager()->getLastInsertId($result);
                             }
                             
                             return $entity;
                         });
                 })
-                ->then(fn(EntityInterface $entity) => $this->afterCreate($entity))
-                ->then(fn($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: $data));
+                ->then(fn (EntityInterface $entity) => $this->afterCreate($entity))
+                ->then(fn ($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_CREATED, message: $data));
     }
 
     /**
      * Delete is idempotent. So if no data is found it will always return the same 204 response.
-     * @param ServerRequestInterface $request 
-     * @param string $id 
-     * @return PromiseInterface 
-     * @throws RuntimeException 
+     * @param ServerRequestInterface $request
+     * @param string $id
+     * @return PromiseInterface
+     * @throws RuntimeException
      */
     protected function delete(string $id) : PromiseInterface
     {
@@ -73,11 +73,11 @@ class CrudController
         $entityClassName = RoutingHelper::getRouteDetails($this->request, 'entityClassName');
 
         return $repository->findBy(['id' => $id])
-            ->then(fn($rows) => empty($rows) ? throw new EntityNotFoundException() : $entityClassName::createFromArray($rows[0]))
-            ->then(fn(EntityInterface $entity) => $this->beforeDelete($entity)->then(fn() => $entity))
-            ->then(fn(EntityInterface $entity) => $repository->delete($id)->then(fn() => $entity)) 
-            ->then(fn(EntityInterface $entity) => $this->afterDelete($entity))            
-            ->then(fn($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: $data));
+            ->then(fn ($rows) => empty($rows) ? throw new EntityNotFoundException() : $entityClassName::createFromArray($rows[0]))
+            ->then(fn (EntityInterface $entity) => $this->beforeDelete($entity)->then(fn () => $entity))
+            ->then(fn (EntityInterface $entity) => $repository->delete($id)->then(fn () => $entity))
+            ->then(fn (EntityInterface $entity) => $this->afterDelete($entity))
+            ->then(fn ($data) => ResponseService::sendJsonResponse(statusCode: Response::STATUS_NO_CONTENT, message: $data));
     }
 
     protected function retrieve(?string $id = null) : PromiseInterface
@@ -86,13 +86,13 @@ class CrudController
         $entityClassName = RoutingHelper::getRouteDetails($this->request, 'entityClassName');
 
         return $this->beforeRetrieve($id)
-            ->then(fn() => $id === null ? $this->getRetrieveAllQuery($repository) : $this->getSingleRetrieveQuery($repository, $id))
-            ->then(fn($rows) => array_map(fn($row) => $entityClassName::createFromArray($row), $rows))
-            ->then(function($entities) {
+            ->then(fn () => $id === null ? $this->getRetrieveAllQuery($repository) : $this->getSingleRetrieveQuery($repository, $id))
+            ->then(fn ($rows) => array_map(fn ($row) => $entityClassName::createFromArray($row), $rows))
+            ->then(function ($entities) {
                 return $this->afterRetrieve($entities)
-                    ->then(fn() => $entities);
+                    ->then(fn () => $entities);
             })
-            ->then(fn($data) => ResponseService::sendJsonResponse(Response::STATUS_OK, $data));
+            ->then(fn ($data) => ResponseService::sendJsonResponse(Response::STATUS_OK, $data));
     }
 
     protected function update(string $id) : PromiseInterface
@@ -101,20 +101,20 @@ class CrudController
         $repository = RepositoryHelper::getRepository($entityClassName);
         
         return $repository->findBy(['id' => $id])
-            ->then(function(array $rows) use ($repository, $entityClassName) {
-                if(empty($rows)) {
+            ->then(function (array $rows) use ($repository, $entityClassName) {
+                if (empty($rows)) {
                     throw new EntityNotFoundException();
                 }
 
                 return
                     resolve($this->getUpdatedEntity($entityClassName::createFromArray($rows[0])))
-                    ->then(fn(EntityInterface $entity) => $this->beforeUpdate($entity))
-                    ->then(function(EntityInterface $entity) use ($repository) {
+                    ->then(fn (EntityInterface $entity) => $this->beforeUpdate($entity))
+                    ->then(function (EntityInterface $entity) use ($repository) {
                         return $repository->update($entity)
-                            ->then(fn() => $entity);
+                            ->then(fn () => $entity);
                     })
-                    ->then(fn(EntityInterface $entity) => $this->afterUpdate($entity))
-                    ->then(fn($data) => ResponseService::sendJsonResponse(Response::STATUS_OK, $data));
+                    ->then(fn (EntityInterface $entity) => $this->afterUpdate($entity))
+                    ->then(fn ($data) => ResponseService::sendJsonResponse(Response::STATUS_OK, $data));
             });
     }
 
@@ -129,7 +129,7 @@ class CrudController
     }
 
     /**
-     * @return PromiseInterface<EntityInterface> 
+     * @return PromiseInterface<EntityInterface>
      */
     protected function beforeCreate(EntityInterface $entity): PromiseInterface
     {
@@ -142,7 +142,7 @@ class CrudController
     }
 
     /**
-     * @return PromiseInterface<EntityInterface> 
+     * @return PromiseInterface<EntityInterface>
      */
     protected function beforeUpdate(EntityInterface $entity): PromiseInterface
     {
@@ -150,7 +150,7 @@ class CrudController
     }
 
     /**
-     * @param EntityInterface $entity 
+     * @param EntityInterface $entity
      * @return PromiseInterface<void>
      */
     protected function afterUpdate(EntityInterface $entity): PromiseInterface
@@ -184,8 +184,8 @@ class CrudController
     }
 
     /**
-     * @param EntityInterface[] $entities 
-     * @return PromiseInterface 
+     * @param EntityInterface[] $entities
+     * @return PromiseInterface
      */
     protected function afterRetrieve(array $entities): PromiseInterface
     {

@@ -11,18 +11,18 @@ abstract class AbstractPayload implements PayloadInterface, JsonSerializable
 {
     abstract protected static function getMandatoryFields() : array;
     abstract public function getRequestBodyArray() : array;
-    abstract static protected function makeRequestChecks(ServerRequestInterface $request, array $payload) : static;
+    abstract protected static function makeRequestChecks(ServerRequestInterface $request, array $payload) : static;
 
     public static function checkMandatory(array $payload): void
-    { 
-        foreach(static::getMandatoryFields() as $field) {
-            if(!isset($payload[$field])) {
+    {
+        foreach (static::getMandatoryFields() as $field) {
+            if (!isset($payload[$field])) {
                 throw new InvalidPayloadException(message: "Field $field is mandatory");
             }
         }
     }
 
-    static public function fromRequest(ServerRequestInterface $request) : self
+    public static function fromRequest(ServerRequestInterface $request) : self
     {
         $payload = $request->getParsedBody();
         if (!is_array($payload)) {
@@ -34,8 +34,8 @@ abstract class AbstractPayload implements PayloadInterface, JsonSerializable
         return static::makeRequestChecks($request, $payload);
     }
 
-    public function jsonSerialize() : mixed 
+    public function jsonSerialize() : mixed
     {
-        return array_filter($this->getRequestBodyArray(), fn($value) => $value !== null);
+        return array_filter($this->getRequestBodyArray(), fn ($value) => $value !== null);
     }
 }
