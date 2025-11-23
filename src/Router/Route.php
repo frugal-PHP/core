@@ -9,7 +9,8 @@ class Route
     public function __construct(
         public string $handler,
         public string $uri,
-        public HTTPVerb $verb
+        public HTTPVerb $verb,
+        public array $middlewares = []
     ) {
     }
 }

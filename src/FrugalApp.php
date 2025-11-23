@@ -37,26 +37,27 @@ class FrugalApp
     ) : void {
         define('START_TS', microtime(true));
 
+        if ($exceptionManager === null) {
+            $exceptionManager = new ExceptionManager();
+        }
+
+        FrugalContainer::getInstance()->set('router', fn () => $router);
+        FrugalContainer::getInstance()->set('exceptionManager', fn () => $exceptionManager);
+        
         // Bootstrap
         self::initializeEnv();
 
         // Initialize plugins
-        foreach(self::$pluginsToInitialize as $plugin) {
+        foreach (self::$pluginsToInitialize as $plugin) {
             $plugin->init();
         }
 
         self::maybeRunCli();
 
-        FrugalContainer::getInstance()->set('router', fn () => $router);
-
         $middlewareRunner = new MiddlewareRunner([
             new BodyParserMiddleware(),
             ...self::$globalMiddlewares
         ]);
-
-        if ($exceptionManager === null) {
-            $exceptionManager = new ExceptionManager();
-        }
 
         $server = self::setupHttpServer($router, $middlewareRunner, $exceptionManager, $sslContext);
         self::setUpServerInterface($server, $sslContext);
@@ -187,7 +188,7 @@ class FrugalApp
         self::$globalMiddlewares[] = $middleware;
     }
 
-    public static function addPlugin(AbstractPlugin $plugin) 
+    public static function addPlugin(AbstractPlugin $plugin)
     {
         self::$pluginsToInitialize[] = $plugin;
     }

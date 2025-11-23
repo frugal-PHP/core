@@ -6,11 +6,8 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class MiddlewareRunner
 {
-    private array $middlewares;
-
-    public function __construct(array $middlewares)
+    public function __construct(private array $middlewares = [])
     {
-        $this->middlewares = $middlewares;
     }
 
     public function __invoke(ServerRequestInterface $request) : ServerRequestInterface

@@ -10,29 +10,31 @@ use FrugalPhpPlugin\Orm\Exceptions\EntityNotFoundException;
 use React\Http\Message\Response;
 use Throwable;
 
+use function React\Promise\resolve;
+
 class ExceptionManager implements ExceptionManagerInterface
 {
     public function __invoke(Throwable $e)
     {
         if ($e instanceof BusinessException) {
-            return ResponseService::sendJsonResponse(
+            return resolve(ResponseService::sendJsonResponse(
                 statusCode: $e->getCode(),
                 message: $e->getMessage()
-            );
+            ));
         }
         
         if ($e instanceof EntityNotFoundException) {
-            return ResponseService::sendJsonResponse(
+            return resolve(ResponseService::sendJsonResponse(
                 statusCode: Response::STATUS_NOT_FOUND,
                 message: "Object not found"
-            );
+            ));
         }
 
         LogService::logException($e);
         
-        return ResponseService::sendJsonResponse(
+        return resolve(ResponseService::sendJsonResponse(
             statusCode: Response::STATUS_INTERNAL_SERVER_ERROR,
             message: "Internal server error. Please retry later."
-        );
+        ));
     }
 }
